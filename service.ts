@@ -71,7 +71,7 @@ export const getDetailImage = async (id: string): Promise<{ data: any }> => {
     if (!setting) {
         throw new Error('No active setting found');
     }
-    const callback = (id: string) => {
+    const callback = (id: string, setting: Setting) => {
         const fullUrl = `${setting.apiUrl}/post/view?${id}`;
         return fetch(`${fullUrl}`, {
             headers: {
@@ -90,7 +90,7 @@ export const getDetailImage = async (id: string): Promise<{ data: any }> => {
             });
     };
     // Use scrapper function
-    const image = await scrapper(callback, id);
+    const image = await scrapper(callback, id, setting);
     await prisma.$disconnect();
     return {
         data: image,

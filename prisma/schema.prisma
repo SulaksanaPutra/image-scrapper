@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Image {
+  id        String  @id @default(uuid()) // Add default UUID generation
+  imageUrl  String
+  author    String? // Change to String? for optional fields
+  generator String? // Change to String? for optional fields
+}
+
+model Favorite {
+  id        String  @id @default(uuid()) // Add default UUID generation
+  imageUrl  String
+  author    String? // Change to String? for optional fields
+  generator String? // Change to String? for optional fields
+}
+
+model History {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  keyword   String
+  limit     Int      @default(10) // Correct type to Int
+  skip      Int      @default(0) // Correct type to Int
+}
+
+model Setting {
+  id        String @id @default(uuid())
+  apiUrl    String
+  domainUrl String
+  status    String @default("non_active") // Add default value for status
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./database.db"
+}

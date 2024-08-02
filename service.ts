@@ -24,30 +24,26 @@ export const getListImage = async (keyword: string): Promise<{ data: Image[], me
         });
     }
 
-    const request = {
-        keyword: history.keyword,
-        limit: history.limit,
-        skip: history.skip,
-    };
-
-    const callback = async () : Promise<Image[]> => {
-        try {
-            const query = new URLSearchParams(request as any);
-            const fullUrl = `${setting.apiUrl}/post/search?${query.toString()}`;
-            const response = await fetch(fullUrl, { headers: { 'X-Origin': setting.domainUrl } });
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.statusText}`);
+    const callback = (keyword : string, limit:number, skip:number, setting: Setting) => {
+        return fetch(`${setting.apiUrl}/post/search?limit=${limit}&skip=${skip}&searchQuery=${keyword}`, {
+            headers: {
+                'X-Origin': setting.domainUrl
             }
-            const data = await response.json();
-            return data.results || [];
-        } catch (error) {
-            console.error('There was a problem with the fetch operation:', error);
-            return []; // Return an empty array in case of error
-        }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => data.results)
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                return [];
+            });
     };
-
     // Use scrapper function
-    const images = await scrapper(callback);
+    const images = await scrapper(callback, keyword, history.limit, history.skip, setting);
 
     if (images.length > 0) {
         await prisma.image.createMany({ data: images });

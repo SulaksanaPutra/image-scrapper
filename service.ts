@@ -71,25 +71,27 @@ export const getDetailImage = async (id: string): Promise<{ data: any }> => {
     if (!setting) {
         throw new Error('No active setting found');
     }
-
-    const callback = async () : Promise<Image[]> => {
-        try {
-            const fullUrl = `${setting.apiUrl}/post/view?${id}`;
-            const response = await fetch(fullUrl, { headers: { 'X-Origin': setting.domainUrl } });
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.statusText}`);
+    const callback = (id: string) => {
+        const fullUrl = `${setting.apiUrl}/post/view?${id}`;
+        return fetch(`${fullUrl}`, {
+            headers: {
+                'X-Origin': setting.domainUrl
             }
-            return await response.json();
-        } catch (error) {
-            console.error('There was a problem with the fetch operation:', error);
-            return []; // Return an empty array in case of error
-        }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                return [];
+            });
     };
-
     // Use scrapper function
-    const image = await scrapper(callback);
+    const image = await scrapper(callback, id);
     await prisma.$disconnect();
-
     return {
         data: image,
     };

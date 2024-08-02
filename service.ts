@@ -72,7 +72,7 @@ export const getDetailImage = async (id: string): Promise<{ data: any }> => {
         throw new Error('No active setting found');
     }
     const callback = (id: string, setting: Setting) => {
-        const fullUrl = `${setting.apiUrl}/post/view?${id}`;
+        const fullUrl = `${setting.apiUrl}/post/view/${id}`;
         return fetch(`${fullUrl}`, {
             headers: {
                 'X-Origin': setting.domainUrl

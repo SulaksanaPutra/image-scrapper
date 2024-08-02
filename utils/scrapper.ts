@@ -1,12 +1,11 @@
 import {Builder} from 'selenium-webdriver';
 import chrome from 'selenium-webdriver/chrome';
-import {PrismaClient, Setting} from '@prisma/client';
+import {PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const scrapper = async (callback: () => Promise<any>): Promise<any> => {
-    // Correcting the findFirst query with 'where' clause
-    const setting: Setting | null = await prisma.setting.findFirst({
+const scrapper = async (callback: (...args: any[]) => Promise<any>, ...callbackArgs: any[]): Promise<any> => {
+    const setting = await prisma.setting.findFirst({
         where: { status: 'active' }
     });
 
@@ -27,11 +26,10 @@ const scrapper = async (callback: () => Promise<any>): Promise<any> => {
 
     try {
         await driver.get(setting.domainUrl);
-        return await driver.executeScript(callback);
+        return await driver.executeScript(callback, ...callbackArgs);
     } finally {
         await driver.quit();
         await prisma.$disconnect(); // Close the Prisma Client connection
     }
 };
-
 export default scrapper;

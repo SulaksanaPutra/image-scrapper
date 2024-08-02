@@ -1,14 +1,9 @@
-import { PrismaClient, Setting, History, Image } from '@prisma/client';
+import {History, Image, PrismaClient, Setting} from '@prisma/client';
 import scrapper from './utils/scrapper';
 
 const prisma = new PrismaClient();
 
-interface HistoryWithLimitAndPage extends History {
-    limit: number;
-    page: number;
-}
-
-const getListImage = async (keyword: string): Promise<{ data: Image[], meta: History }> => {
+export const getListImage = async (keyword: string): Promise<{ data: Image[], meta: History }> => {
     // Fetch the active setting
     const setting: Setting | null = await prisma.setting.findFirst({
         where: { status: 'active' }
@@ -19,7 +14,7 @@ const getListImage = async (keyword: string): Promise<{ data: Image[], meta: His
     }
 
     // Fetch or create history
-    let history: HistoryWithLimitAndPage | null = await prisma.history.findFirst({
+    let history: History | null = await prisma.history.findFirst({
         where: { keyword }
     });
 
@@ -32,19 +27,17 @@ const getListImage = async (keyword: string): Promise<{ data: Image[], meta: His
     const request = {
         keyword: history.keyword,
         limit: history.limit,
-        skip: history.page,
+        skip: history.skip,
     };
 
-    const callback = async () => {
+    const callback = async () : Promise<Image[]> => {
         try {
             const query = new URLSearchParams(request as any);
             const fullUrl = `${setting.apiUrl}/post/search?${query.toString()}`;
             const response = await fetch(fullUrl, { headers: { 'X-Origin': setting.domainUrl } });
-
             if (!response.ok) {
                 throw new Error(`Network response was not ok: ${response.statusText}`);
             }
-
             const data = await response.json();
             return data.results || [];
         } catch (error) {
@@ -59,35 +52,44 @@ const getListImage = async (keyword: string): Promise<{ data: Image[], meta: His
     if (images.length > 0) {
         await prisma.image.createMany({ data: images });
     }
-
     await prisma.$disconnect();
-
     return {
         data: images,
         meta: history
     };
 };
 
-export default getListImage;
 
-//
-// const getDetailImage = () =>{
-//     return scrapper(async ({id}) => {
-//     try {
-//         const fullUrl = `${apiUrl}/post/detail` + encodeURIComponent(request)
-//         const response = await fetch(fullUrl, {
-//             headers: {
-//                 'X-Origin': domainUrl
-//             }
-//         });
-//         if (!response.ok) {
-//             throw new Error('Network response was not ok');
-//         }
-//         const data = await response.json();
-//         return data.results;
-//     } catch (error) {
-//         console.error('There was a problem with the fetch operation:', error);
-//         return {};
-//     }
-// }, domainUrl, {id});
-// }
+export const getDetailImage = async (id: string): Promise<{ data: any }> => {
+    // Fetch the active setting
+    const setting: Setting | null = await prisma.setting.findFirst({
+        where: { status: 'active' }
+    });
+
+    if (!setting) {
+        throw new Error('No active setting found');
+    }
+
+    const callback = async () : Promise<Image[]> => {
+        try {
+            const fullUrl = `${setting.apiUrl}/post/view?${id}`;
+            const response = await fetch(fullUrl, { headers: { 'X-Origin': setting.domainUrl } });
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('There was a problem with the fetch operation:', error);
+            return []; // Return an empty array in case of error
+        }
+    };
+
+    // Use scrapper function
+    const image = await scrapper(callback);
+    await prisma.$disconnect();
+
+    return {
+        data: image,
+    };
+};
+

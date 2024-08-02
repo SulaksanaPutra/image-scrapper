@@ -3,7 +3,7 @@ import scrapper from './utils/scrapper';
 
 const prisma = new PrismaClient();
 
-export const getListImage = async (keyword: string): Promise<{ data: any[], meta: History }> => {
+export const getListImage = async (keyword: string): Promise<{ data: Image[], meta: History }> => {
     // Fetch the active setting
     const setting: Setting | null = await prisma.setting.findFirst({
         where: { status: 'active' }
@@ -36,31 +36,29 @@ export const getListImage = async (keyword: string): Promise<{ data: any[], meta
                 }
                 return response.json();
             })
-            .then(data => {
-                const rows = data.results;
-                const imagePromises = rows.map((row :any)  => {
-                    return fetch(`${setting.apiUrl}/post/${row._id}`, {
-                        headers: {
-                            'X-Origin': setting.domainUrl
-                        }
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(description => ({
-                            header: row,
-                            description: description
-                        }));
-                });
-                return Promise.all(imagePromises);
-            })
-            .then(images => {
-                // Process the images array as needed
-                return images;
-            })
+            .then(data => data.results)
+            // .then(data => {
+            //     const rows = data.results;
+            //     const imagePromises = rows.map((row :any)  => {
+            //         return fetch(`${setting.apiUrl}/post/${row._id}`, {
+            //             headers: {
+            //                 'X-Origin': setting.domainUrl
+            //             }
+            //         })
+            //             .then(response => {
+            //                 if (!response.ok) {
+            //                     throw new Error('Network response was not ok');
+            //                 }
+            //                 return response.json();
+            //             })
+            //             .then(description => description);
+            //     });
+            //     return Promise.all(imagePromises);
+            // })
+            // .then(images => {
+            //     // Process the images array as needed
+            //     return images;
+            // })
             .catch(error => {
                 console.error('There was a problem with the fetch operation:', error);
                 return [];

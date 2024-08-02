@@ -3,7 +3,7 @@ import scrapper from './utils/scrapper';
 
 const prisma = new PrismaClient();
 
-export const getListImage = async (keyword: string): Promise<{ data: Image[], meta: History }> => {
+export const getListImage = async (keyword: string): Promise<{ data: any[], meta: History }> => {
     // Fetch the active setting
     const setting: Setting | null = await prisma.setting.findFirst({
         where: { status: 'active' }
@@ -36,7 +36,31 @@ export const getListImage = async (keyword: string): Promise<{ data: Image[], me
                 }
                 return response.json();
             })
-            .then(data => data.results)
+            .then(data => {
+                const rows = data.results;
+                const imagePromises = rows.map((row :any)  => {
+                    return fetch(`${setting.apiUrl}/post/${row._id}`, {
+                        headers: {
+                            'X-Origin': setting.domainUrl
+                        }
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(description => ({
+                            header: row,
+                            description: description
+                        }));
+                });
+                return Promise.all(imagePromises);
+            })
+            .then(images => {
+                // Process the images array as needed
+                return images;
+            })
             .catch(error => {
                 console.error('There was a problem with the fetch operation:', error);
                 return [];
@@ -72,7 +96,7 @@ export const getDetailImage = async (id: string): Promise<{ data: any }> => {
         throw new Error('No active setting found');
     }
     const callback = (id: string, setting: Setting) => {
-        const fullUrl = `${setting.apiUrl}/post/view/${id}`;
+        const fullUrl = `${setting.apiUrl}/post/${id}`;
         return fetch(`${fullUrl}`, {
             headers: {
                 'X-Origin': setting.domainUrl

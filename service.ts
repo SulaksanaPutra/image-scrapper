@@ -44,9 +44,15 @@ export const getListImage = async (keyword: string): Promise<{ data: Image[], me
     };
     // Use scrapper function
     const images = await scrapper(callback, keyword, history.limit, history.skip, setting);
-
     if (images.length > 0) {
-        await prisma.image.createMany({ data: images });
+        await prisma.image.createMany({
+            data: images.map((image : any) => ({
+                id: image._id,
+                imageUrl: image.imageUrl,
+                author: image.author ?? null,
+                generator: image.generator ?? null,
+            })),
+        });
     }
     await prisma.$disconnect();
     return {

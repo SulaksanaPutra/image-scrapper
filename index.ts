@@ -33,10 +33,10 @@ app.post('/setting', async (req: Request, res: Response) => {
     }
 });
 
-app.put('/setting/:id', (req: Request, res: Response) => {
+app.put('/setting/:id', async(req: Request, res: Response) => {
     const { id } = req.params;
     try {
-        const setting = prisma.setting.update({
+        const setting = await prisma.setting.update({
             where: { id },
             data: req.body
         });
@@ -61,7 +61,7 @@ app.get('/images', async (req: Request, res: Response) => {
 app.get('/prev', async (req: Request, res: Response) => {
     const { keyword } = req.body;
     try {
-        const history = await prisma.history.findFirst({
+        let history = await prisma.history.findFirst({
             where: { keyword }
         });
         if(!history){
@@ -70,11 +70,12 @@ app.get('/prev', async (req: Request, res: Response) => {
         }
         if(history.skip > 0){
             const prev = history.skip - 1;
-            await prisma.history.update({
+            history = await prisma.history.update({
                 where: { id: history.id }, // Use unique identifier 'id'
                 data: { skip: prev }
             });
         }
+        res.status(200).send(history);
     } catch (error) {
         res.status(500).send(error);
     }
@@ -83,7 +84,7 @@ app.get('/prev', async (req: Request, res: Response) => {
 app.get('/next', async (req: Request, res: Response) => {
     const { keyword } = req.body;
     try {
-        const history = await prisma.history.findFirst({
+        let history = await prisma.history.findFirst({
             where: { keyword }
         });
         if(!history){
@@ -92,11 +93,12 @@ app.get('/next', async (req: Request, res: Response) => {
         }
         const next = history.skip + 1;
         if(next < history.limit){
-            prisma.history.update({
+            history = await prisma.history.update({
                 where: { id: history.id },
                 data: { skip: next }
             });
         }
+        res.status(200).send(history);
     } catch (error) {
         res.status(500).send(error);
     }

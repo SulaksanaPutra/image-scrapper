@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client';
-import {getListImage, getDetailImage} from "./services/service";
+import { PrismaClient } from '@prisma/client'
+import { getListImage, getDetailImage } from './services/service'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 const testGetListImage = async () => {
     try {
@@ -10,17 +10,17 @@ const testGetListImage = async () => {
             data: {
                 status: 'active',
                 apiUrl: 'https://example.com/api',
-                domainUrl: 'https://example.com'
-            }
-        });
+                domainUrl: 'https://example.com',
+            },
+        })
         // Call the function
-        const result = await getListImage('pop');
-        console.log('Result:', result);
+        const result = await getListImage('pop')
+        console.log('Result:', result)
     } catch (error) {
-        console.error('Error during test:', error);
+        console.error('Error during test:', error)
     } finally {
-        await prisma.$disconnect();
+        await prisma.$disconnect()
     }
-};
+}
 
-testGetListImage();
+testGetListImage()

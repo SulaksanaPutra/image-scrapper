@@ -32,6 +32,11 @@ export const getListImage = async (
         history = await prisma.history.create({
             data: { keyword },
         })
+    } else {
+        history = await prisma.history.update({
+            where: { id: history.id },
+            data: { skip: history.skip + history.limit },
+        })
     }
 
     const callback = (

@@ -1,5 +1,5 @@
 import {History, Image, PrismaClient, Setting} from '@prisma/client';
-import scrapper from './utils/scrapper';
+import scrapper from '../utils/scrapper';
 
 const prisma = new PrismaClient();
 

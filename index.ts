@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import path from 'path';
 import {PrismaClient} from "@prisma/client";
 import {getListImage} from "./services/service";
 
@@ -11,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const prisma = new PrismaClient();
 
-app.get('/setting', async (req: Request, res: Response) => {
+app.get('/setting', async (_req: Request, res: Response) => {
     try {
         const setting = await prisma.setting.findFirst({
             where: { status: 'active' }
@@ -71,8 +70,8 @@ app.get('/prev', async (req: Request, res: Response) => {
         }
         if(history.skip > 0){
             const prev = history.skip - 1;
-            prisma.history.update({
-                where: { keyword },
+            await prisma.history.update({
+                where: { id: history.id }, // Use unique identifier 'id'
                 data: { skip: prev }
             });
         }
@@ -94,7 +93,7 @@ app.get('/next', async (req: Request, res: Response) => {
         const next = history.skip + 1;
         if(next < history.limit){
             prisma.history.update({
-                where: { keyword },
+                where: { id: history.id },
                 data: { skip: next }
             });
         }
@@ -116,7 +115,7 @@ app.post('/favorite', async (req: Request, res: Response) => {
     }
 });
 
-app.get('/favorites', async (req: Request, res: Response) => {
+app.get('/favorites', async (_req: Request, res: Response) => {
     try {
         const favorites = await prisma.favorite.findMany()
         res.status(200).send(favorites);

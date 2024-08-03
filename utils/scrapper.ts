@@ -32,8 +32,20 @@ const scrapper = async (callback: (...args: any[]) => Promise<any>, ...callbackA
         await driver.get(setting.domainUrl);
         return await driver.executeScript(callback, ...callbackArgs);
     } finally {
-        await driver.quit();
+        // await driver.quit();
         await prisma.$disconnect(); // Close the Prisma Client connection
     }
 };
+// Make sure to close the driver when the application ends or after a set time
+const closeDriver = async () => {
+    if (driver) {
+        await driver.quit();
+        driver = null;
+    }
+    await prisma.$disconnect(); // Close the Prisma Client connection
+};
+
+process.on('exit', closeDriver);
+process.on('SIGINT', closeDriver);
+process.on('SIGTERM', closeDriver);
 export default scrapper;

@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import { db, resultsDb, favoritesDb } from './db';
+import {PrismaClient} from "@prisma/client";
+import {getListImage} from "./services/service";
 
 const app = express();
 const port = 3000;
@@ -8,79 +9,120 @@ const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.post('/mode', (req: Request, res: Response) => {
-    const { mode } = req.body;
+const prisma = new PrismaClient();
+
+app.get('/setting', async (req: Request, res: Response) => {
     try {
-        db.set('settings.baseUrl', mode).write();
-        res.status(200).send({ message: 'Setting updated successfully' });
+        const setting = await prisma.setting.findFirst({
+            where: { status: 'active' }
+        })
+        res.status(200).send(setting);
     } catch (error) {
-        console.error('Error updating setting:', error);
-        res.status(500).send({ error: 'Internal Server Error' });
+        res.status(500).send(error);
     }
 });
 
-app.post('/search', async (req: Request, res: Response) => {
-    const { keyword, limit } = req.body;
+app.post('/setting', async (req: Request, res: Response) => {
+    const requestBody = req.body;
     try {
-        db.set('settings', { ...db.get('settings').value(), keyword, limit, skip: 0 }).write();
-        const results = await scrapper(keyword, limit, 0); // Ensure scrapper function is typed properly
-        res.json(results[0]);
+        const setting = await prisma.setting.create({
+            data: requestBody
+        });
+        res.status(200).send(setting);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).send(error);
     }
 });
 
-app.get('/prev', (req: Request, res: Response) => {
+app.put('/setting/:id', (req: Request, res: Response) => {
+    const { id } = req.params;
     try {
-        const setting = db.get('settings').value();
-        const images = resultsDb.get('results').value();
-        const prev = setting.prev - 1;
-        db.set('settings.prev', prev).write();
-
-        res.json(images[prev] || {});
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error reading or writing files');
+        const setting = prisma.setting.update({
+            where: { id },
+            data: req.body
+        });
+        res.status(200).send(setting);
+    } catch (error) {
+        res.status(500).send(error);
     }
 });
 
-app.get('/next', (req: Request, res: Response) => {
+
+app.get('/images', async (req: Request, res: Response) => {
+    const { keyword } = req.body;
     try {
-        const setting = db.get('settings').value();
-        const images = resultsDb.get('results').value();
-
-        const current = setting.current + 1;
-        db.set('settings.current', current).write();
-
-        res.json(images[current] || {});
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error reading or writing files');
+        const response = await getListImage(keyword)
+        res.status(200).send(response);
+    }
+    catch (error) {
+        res.status(500).send(error);
     }
 });
 
-app.get('/love', (req: Request, res: Response) => {
+app.get('/prev', async (req: Request, res: Response) => {
+    const { keyword } = req.body;
     try {
-        const setting = db.get('settings').value();
-        const images = resultsDb.get('results').value();
-        const favorites = favoritesDb.get('favorites').value();
-
-        favorites.push(images[setting.current]);
-        favoritesDb.set('favorites', favorites).write();
-
-        res.json('success');
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error reading or writing files');
+        const history = await prisma.history.findFirst({
+            where: { keyword }
+        });
+        if(!history){
+            res.status(500).send('No history found');
+            return;
+        }
+        if(history.skip > 0){
+            const prev = history.skip - 1;
+            prisma.history.update({
+                where: { keyword },
+                data: { skip: prev }
+            });
+        }
+    } catch (error) {
+        res.status(500).send(error);
     }
 });
 
-app.get('/favorites', (req: Request, res: Response) => {
-    res.json(favoritesDb.get('favorites').value());
+app.get('/next', async (req: Request, res: Response) => {
+    const { keyword } = req.body;
+    try {
+        const history = await prisma.history.findFirst({
+            where: { keyword }
+        });
+        if(!history){
+            res.status(500).send('No history found');
+            return;
+        }
+        const next = history.skip + 1;
+        if(next < history.limit){
+            prisma.history.update({
+                where: { keyword },
+                data: { skip: next }
+            });
+        }
+    } catch (error) {
+        res.status(500).send(error);
+    }
 });
 
-app.get('/', (req: Request, res: Response) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+app.post('/favorite', async (req: Request, res: Response) => {
+    const  requestBody = req.body;
+    try {
+        const favorite = await prisma.favorite.create({
+            data: requestBody
+        });
+        res.status(200).send(favorite);
+    }
+    catch (error) {
+        res.status(500).send(error);
+    }
+});
+
+app.get('/favorites', async (req: Request, res: Response) => {
+    try {
+        const favorites = await prisma.favorite.findMany()
+        res.status(200).send(favorites);
+    } catch (error) {
+        res.status(500).send(error);
+    }
 });
 
 const localIP = '192.168.1.3';
